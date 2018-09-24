@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>online-chat</title>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+	<meta name="renderer" content="webkit">
+	<meta http-equiv="Cache-Control" content="no-siteapp">
+	<meta name="description" content="online-chat">
+	<meta name="keywords" content="HTML,CSS,JavaScript,chat">
+	<meta name="author" content="xumeng">
+	<link rel="shortcut icon" type="image/x-icon" href="http://xumengzi.top/images/xu_icon_40.ico" media="screen">
+	<style type="text/css">
+		html{
+			width: 100%;
+			height: 100%;
+		}
+		body{
+		    height: 100%;
+    		margin: 0;
+    		font-family: consolas;
+		}
+		.content{
+	        position: relative;
+		    width: 100%;
+		    max-width: 500px;
+		    height: 100%;
+		    max-height: 800px;
+		    border: 1px #ccc solid;
+		    border-bottom: none;
+		    display: flex;
+		    margin: 0 auto;
+		    padding: 10px;
+		    box-sizing: border-box;
+		    flex-direction: column;
+		}
+		.messages{
+		    height: calc(100% - 50px);
+		    margin: 0;
+		    padding: 0;
+		    overflow: auto;
+		}
+		.messages li{
+			list-style: none;
+			margin: 4px 0;
+			padding: 4px 0;
+		}
+		.single_msg{
+		    text-align: center;
+		    font-size: 12px;
+		    color: #afadad;
+		}
+		.single_msg .user_name{
+		    color: #1f1f1f;
+		}
+		.every_message{
+			display: flex;
+		    font-size: 15px;
+		    align-items: center;
+		}
+		.every_message .each_name{
+		    color: green;
+		    font-weight: bold;
+	        margin-right: 15px;
+	        /*min-width: 50px;*/
+            max-width: 100px;
+		    /*overflow: hidden;
+		    text-overflow: ellipsis;
+		    white-space: nowrap;*/
+		}
+		.every_message .each_words{
+			position: relative;
+		    border: 1px #ccc solid;
+		    border-radius: 4px;
+		    padding: 8px;
+	        word-break: break-word;
+            max-width: 245px;
+		}
+		.every_message .each_words::before{
+	        content: '';
+		    display: block;
+		    position: absolute;
+		    top: 13px;
+		    left: -5px;
+		    width: 8px;
+		    height: 8px;
+		    background: #fff;
+		    border: 1px solid;
+		    border-color: #ccc #ccc transparent transparent;
+		    transform: rotate(-135deg);
+		    z-index: 101;
+		}
+		.current_user{
+			flex-direction: row-reverse;
+		}
+		.current_user .each_name{
+	        margin-left: 15px;
+	        margin-right: 0;
+		}
+		.current_user .each_words{
+		    background: #4eb900;
+		    color: #fff;
+		    border-color: #4eb900;
+		}
+		.current_user .each_words::before{
+	        content: '';
+	        left: initial;
+		    right: -5px;
+		    background: #4eb900;
+	        border-color: #4eb900 #4eb900 transparent transparent;
+		    transform: rotate(45deg);
+		}
+		.send{
+	        width: 100%;
+		    height: 40px;
+		    display: flex;
+		    position: fixed;
+		    bottom: 1px;
+		    left: 0;
+		}
+		.send input{
+		    position: relative;
+		    -webkit-box-sizing: border-box;
+		    box-sizing: border-box;
+		    border: 1px solid #dbdbdb;
+		    font-size: 1em;
+		    height: 100%;
+		    line-height: 1.4;
+		    outline: none;
+		    -webkit-transition: all 0.2s;
+		    transition: all 0.2s;
+		}
+		.send .value{
+		    flex: 5;
+		    text-indent: 4px;
+		}
+		.send .btn{
+	        width: 80px;
+		    background: #4eb900;
+		    color: #fff;
+		    cursor: pointer;
+		}
+	</style>
+</head>
+<body>
+	<div class="content">
+		<ul class="messages"></ul>
+		<div class="send">
+			<input type="text" class="value" name="value" value="">
+			<input type="button" class="btn" name="send" value="send">
+		</div>
+	</div>
+	<script type="text/javascript" src="/socket.io/socket.io.js"></script>
+	<script type="text/javascript">
+		window.onload = function(){
+			var random = Math.PI.toString().substr(0, Math.round(Math.random() * 10 + 3));
+			var name = prompt('edit your name:') || random;
+			name = name.substr(0, 10);
+			var socket = io();
+
+			socket.emit('join', name);
+
+			document.title = name + ` 's chat`;
+
+			//加入群聊
+			socket.on('join', function(name){
+				var joinInfo = `<div class="single_msg"><span class="user_name">${name}</span> joined the chat</div>`;
+				addMessage(joinInfo);
+			});
+
+			var inp = document.querySelector('.value');
+			inp.addEventListener('keyup', function(e){
+				if (e.keyCode == 13) {
+					sendMsg(e.target);
+				};
+			}, false);
+			document.querySelector('.btn').addEventListener('click', function(){
+				sendMsg(inp);
+			}, false);
+
+			//接收消息
+			socket.on('message', function(obj){
+				var isCurrentUser = (name == obj.name ? 'current_user' : '');
+				var speak =`<div class="every_message ${isCurrentUser}"><span class="each_name">${obj.name}</span> <span class="each_words">${obj.msg}</span></div>`;
+				addMessage(speak);
+			});
+
+			function sendMsg(tar){
+				if (tar.value == '') {return};
+				var obj = {
+					msg: tar.value,
+					name: name
+				};
+				socket.emit('message', obj);
+				tar.value = '';
+			}
+
+			function addMessage(msg){
+				let li = document.createElement('li');
+				li.innerHTML = msg;
+				document.querySelector('.messages').appendChild(li);
+				li.scrollIntoView({behavior: 'smooth'});
+			};
+		}
+	</script>
+</body>
+</html>
