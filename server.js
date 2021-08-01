@@ -1,10 +1,18 @@
+var express = require('express');
 var app = require('express')();
 var http = require('http').Server(app);
-
+var path = require('path');
 var io = require('socket.io')(http);
 
-app.get('/', function(req, res){
+app.get('/chat', function(req, res){
 	res.sendFile(__dirname+ '/index.html')
+});
+
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.use(function(err, req, res, next){
+	console.error(err.stack);
+	res.send(500, 'Something broke!');
 });
 
 var userSocket = [];
@@ -22,7 +30,8 @@ io.on('connection', function(socket){
 	})
 })
 
-var ip = '192.168.0.108';
+var ip = '192.168.0.112';
+
 http.listen(3000, ip, function(){
 	console.log('listening on port 3000')
 })

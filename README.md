@@ -1,8 +1,8 @@
 # node-chat
 一个在线聊天的项目, node+socket
 
-![在线聊天](https://github.com/JarvenIV/node-chat/blob/master/imgs/1.png?raw=true)
-![在线聊天](https://github.com/JarvenIV/node-chat/blob/master/imgs/2.png?raw=true)
+![在线聊天](./public/imgs/1.png)
+![在线聊天](./public/imgs/2.png)
 
 运行步骤
 - 安装`node`环境
