@@ -10,3 +10,9 @@
 - `npm install --save socket.io`
 - 修改`server.js`里的`ip`地址
 - 执行命令`node server.js`
+
+目录结构
+-- public  js，css等文件夹
+-- index.html  主入口文件
+-- server.js  服务文件
+-- index.js

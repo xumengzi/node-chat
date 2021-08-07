@@ -62,6 +62,7 @@ body{
     padding: 8px;
     word-break: break-word;
     max-width: 245px;
+    min-width: 100px;
 }
 .every_message .each_words::before{
     content: '';

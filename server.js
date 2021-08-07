@@ -30,8 +30,8 @@ io.on('connection', function(socket){
 	})
 })
 
-var ip = '192.168.0.112';
+var ip = '127.0.0.1' || '192.168.0.113';
 
-http.listen(3000, ip, function(){
-	console.log('listening on port 3000')
+http.listen(3333, ip, function(){
+	console.log('listening on port 3333')
 })
