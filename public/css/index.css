@@ -12,7 +12,6 @@ body{
     width: 100%;
     max-width: 500px;
     height: 100%;
-    max-height: 800px;
     border: 1px #ccc solid;
     border-bottom: none;
     display: flex;
@@ -49,11 +48,7 @@ body{
     color: green;
     font-weight: bold;
     margin-right: 15px;
-    /*min-width: 50px;*/
     max-width: 100px;
-    /*overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;*/
 }
 .every_message .each_words{
     position: relative;
@@ -104,7 +99,9 @@ body{
     display: flex;
     position: fixed;
     bottom: 1px;
-    left: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 500px;
 }
 .send input{
     position: relative;
