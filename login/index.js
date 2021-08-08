@@ -2,7 +2,8 @@ var fs = require('fs');
 
 function readUser(dir) {
     try {
-        var res = fs.readFileSync(dir);
+        var res = fs.readFileSync(dir, 'utf-8');
+        return res;
     } catch (error) {
         console.log('读取失败');
     }

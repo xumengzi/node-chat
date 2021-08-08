@@ -14,6 +14,7 @@
 目录结构
 -- public  js，css等文件夹
 -- index.html  主入口文件
+-- login.html  登录，注册页面
 -- server.js  服务文件
 
 

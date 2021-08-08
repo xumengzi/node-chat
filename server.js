@@ -7,6 +7,8 @@ var path = require('path');
 var io = require('socket.io')(http);
 var bodyParser = require("body-parser");
 
+var userDir = `${__dirname}/login/user.json`;
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 
@@ -14,10 +16,14 @@ app.get('/chat', function(req, res){
 	res.sendFile(__dirname + '/index.html')
 });
 
+app.get('/login', function(req, res){
+	res.sendFile(__dirname + '/login.html')
+});
+
 app.post('/chat/login', function(req, res) {
 	const { userName, userKey} = req.body;
 	if(userName && userKey) {
-		writeUser(`${__dirname}/login/user.json`, req.body);
+		writeUser(userDir, req.body);
 		var dir = `${__dirname}/history/${req.body['userKey']}.json`;
 		writeUser(dir, '');
 		res.send({
@@ -38,9 +44,7 @@ app.post('/chat/isLogin', function(req, res) {
 	const { userName, userKey} = req.body;
 	console.log('req.body', req.body);
 	if(userName && userKey) {
-		var dir = `${__dirname}/login/user.json`;
-		var users = readUser(dir);
-		console.log('users', dir, users);
+		var users = readUser(userDir);
 		res.send({
 			success: true,
 			message: '已经登录了',
@@ -55,6 +59,46 @@ app.post('/chat/isLogin', function(req, res) {
 	}
 });
 
+// 通过user-key获取消息记录
+app.post('/chat/getMessage', function(req, res) {
+	const { userName, userKey} = req.body;
+	var mesDir = `${__dirname}/history/${userKey}.json`;
+	console.log('json', mesDir);
+	try {
+		var messages = readUser(mesDir);
+		var messageRes = {
+			success: true,
+			message: '数据获取成功',
+			code: 200,
+			data: JSON.parse(messages || '')
+		};
+		res.send(messageRes);
+	} catch (error) {
+		console.log('消息获取失败', error);
+	}
+});
+
+// 通过user-key写入每一条消息
+app.post('/chat/setMessage', function(req, res) {
+	const { userName, userKey, userMessage} = req.body;
+	var mesDir = `${__dirname}/history/${userKey}.json`;
+	console.log('userMessage', userMessage);
+	try {
+		var messages = readUser(mesDir);
+		var lastMess = JSON.parse(messages)
+		lastMess.push(userMessage);
+		writeUser(mesDir, lastMess, 'utf-8');
+		var messageRes = {
+			success: true,
+			message: '数据保存成功',
+			code: 200,
+		};
+		res.send(messageRes);
+	} catch (error) {
+		console.log('消息获取失败', error);
+	}
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(function(err, req, res, next){
@@ -62,13 +106,11 @@ app.use(function(err, req, res, next){
 	res.send(500, 'Something broke!');
 });
 
-var userSocket = [];
 
 io.on('connection', function(socket){
 	console.log('connected');
 
 	socket.on('join', function(name){
-		// userSocket[name] = socket;
 		io.emit('join', name);
 	});
 
