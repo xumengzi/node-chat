@@ -8,6 +8,7 @@ var io = require('socket.io')(http);
 var bodyParser = require("body-parser");
 
 var userDir = `${__dirname}/login/user.json`;
+var userMesdir = `${__dirname}/history/userMessage.json`;
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
@@ -31,9 +32,8 @@ app.post('/chat/login', function(req, res) {
 		userObj[userKey] = userName;
 		// 写入用户信息
 		writeUser(userDir, userObj);
-		var dir = `${__dirname}/history/${req.body['userKey']}.json`;
 		// 写入当前用户个人信息
-		writeUser(dir, '');
+		writeUser(userMesdir, '');
 		res.send({
 			success: true,
 			message: '登录成功',
@@ -52,18 +52,16 @@ app.post('/chat/login', function(req, res) {
 app.post('/chat/isLogin', function(req, res) {
 	const { userName, userKey} = req.body;
 	if(userName && userKey) {
-		var users = JSON.parse(readUser(userDir));
 		// 已经登录
-		console.log(userKey, users);
-		if( userKey && users[userKey] == userName) {
+		const isLogin = checkIsLogin(userKey, userName);
+		if( isLogin) {
 			res.send({
 				success: true,
 				message: '已经登录了',
 				code: 200
 			});
 		}else{
-			var dir = `${__dirname}/history/${userKey}.json`;
-			writeUser(dir, JSON.stringify([]));
+			writeUser(userMesdir, JSON.stringify([]));
 			res.send({
 				success: true,
 				message: '自动为您创建目录',
@@ -83,42 +81,106 @@ app.post('/chat/isLogin', function(req, res) {
 // 通过user-key获取消息记录
 app.post('/chat/getMessage', function(req, res) {
 	const { userName, userKey} = req.body;
-	var mesDir = `${__dirname}/history/${userKey}.json`;
-	console.log('json', mesDir);
-	try {
-		var messages = readUser(mesDir);
-		var messageRes = {
-			success: true,
-			message: '数据获取成功',
+	const isLogin = checkIsLogin(userKey, userName);
+	if(isLogin) {
+		try {
+			var messages = readUser(userMesdir) || '[]';
+			var messageRes = {
+				success: true,
+				message: '数据获取成功',
+				code: 200,
+				data: JSON.parse(messages)
+			};
+			res.send(messageRes);
+		} catch (error) {
+			console.log('消息获取失败', error);
+			res.send({
+				success: false,
+				message: '获取失败' + error,
+				code: 200,
+			});
+		}
+	}else{
+		res.send({
+			success: false,
+			message: '获取失败',
 			code: 200,
-			data: JSON.parse(messages || '')
-		};
-		res.send(messageRes);
-	} catch (error) {
-		console.log('消息获取失败', error);
+		});
 	}
 });
+
+// 获取所有成员
+app.post('/chat/getAllChats', function(req, res) {
+	const { userName, userKey} = req.body;
+	const isLogin = checkIsLogin(userKey, userName);
+	if(isLogin) {
+		try {
+			var users = readUser(userDir) || '[]';
+			console.log('users', users);
+			var messageRes = {
+				success: true,
+				message: '数据获取成功',
+				code: 200,
+				data: JSON.parse(users)
+			};
+			res.send(messageRes);
+		} catch (error) {
+			console.log('消息获取失败', error);
+			res.send({
+				success: false,
+				message: '获取失败' + error,
+				code: 200,
+			});
+		}
+	}else{
+		res.send({
+			success: false,
+			message: '获取失败',
+			code: 200,
+		});
+	}
+});
+
+function checkIsLogin(userKey, userName) {
+	// read users
+	var users = JSON.parse(readUser(userDir));
+	return userKey && users[userKey] == userName;
+}
 
 // 通过user-key写入每一条消息
 app.post('/chat/setMessage', function(req, res) {
 	const { userName, userKey, userMessage} = req.body;
-	var mesDir = `${__dirname}/history/${userKey}.json`;
-	console.log('userMessage', userMessage);
-	try {
-		var messages = readUser(mesDir) || [];
-		var lastMess = JSON.parse(messages) || [];
-		console.log('messages', messages);
-		console.log('lastMess', lastMess);
-		lastMess.push(userMessage);
-		writeUser(mesDir, lastMess, 'utf-8');
+	const isLogin = checkIsLogin(userKey, userName);
+	if(isLogin) {
+		try {
+			var messages = readUser(userMesdir) || '[]';
+			console.log('messages==========', messages);
+			var lastMess = JSON.parse(messages) || [];
+			console.log('lastMess', lastMess);
+			userMessage.userKey = userKey;
+			lastMess.push(userMessage);
+			writeUser(userMesdir, lastMess, 'utf-8');
+			var messageRes = {
+				success: true,
+				message: '数据保存成功',
+				code: 200,
+			};
+			res.send(messageRes);
+		} catch (error) {
+			var messageRes = {
+				success: true,
+				message: '保存失败' + error,
+				code: 200,
+			};
+			res.send(messageRes);
+		}
+	}else{
 		var messageRes = {
 			success: true,
-			message: '数据保存成功',
+			message: '保存失败',
 			code: 200,
 		};
 		res.send(messageRes);
-	} catch (error) {
-		console.log('消息获取失败', error);
 	}
 });
 
@@ -134,10 +196,12 @@ io.on('connection', function(socket){
 	console.log('connected');
 
 	socket.on('join', function(name){
+		console.log('obj----join', name);
 		io.emit('join', name);
 	});
 
 	socket.on('message', function(obj){
+		console.log('obj----emit', obj);
 		io.emit('message', obj);
 	})
 })

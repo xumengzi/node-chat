@@ -3,6 +3,9 @@
         var socket = io();
         
         var userObj = utils.getStorage('data');
+        if(!userObj) {
+            location.href = '/login';
+        }
 
         socket.emit('join', userObj);
     
@@ -11,9 +14,11 @@
         // 展示历史消息
         renderMessage(userObj);
 
+        getAllChats(userObj);
+
         //加入群聊
         socket.on('join', function(name){
-            if(judgeID(name)) {
+            if(judgeID(name.userKey)) {
                 return;
             };
             var joinInfo = `
@@ -35,10 +40,18 @@
         document.querySelector('.btn').addEventListener('click', function(){
             sendMsg(inp);
         }, false);
+
+        // 展示所有聊天成员
+        var chatDom = document.querySelector('.all-chat');
+
+        document.querySelector('.show-all').addEventListener('click', function(){
+            chatDom.classList.toggle('show');
+        }, false);
     
         // 接收消息
         socket.on('message', function(obj){
-            var isCurrentUser = (judgeID(obj) ? 'current_user' : '');
+            console.log('on-message', obj);
+            var isCurrentUser = (judgeID(obj.userKey) ? 'current_user' : '');
             var speak =`
                 <div class="every_message ${isCurrentUser}">
                     <span class="each_name">${obj.userName}</span> 
@@ -53,13 +66,14 @@
             var obj = {
                 message: tar.value,
                 userName: userObj.userName,
+                userKey: userObj.userKey
             };
             socket.emit('message', obj);
             tar.value = '';
         };
 
-        function judgeID(target) {
-            return userObj.userName === target.userName;
+        function judgeID(userKey) {
+            return userObj.userKey === userKey;
         };
 
         // 获取消息记录，渲染出来
@@ -78,8 +92,8 @@
         function cal(data) {
             var divs = '';
             data.forEach(item => {
-                const { message, userName } = item;
-                var isCurrentUser = (judgeID({userName}) ? 'current_user' : '');
+                const { message, userName, userKey } = item;
+                var isCurrentUser = (judgeID(userKey) ? 'current_user' : '');
                 divs += `
                     <li>
                         <div class="every_message ${isCurrentUser}">
@@ -88,8 +102,30 @@
                         </div>
                     </li>
                 `;
-                document.querySelector('.messages').innerHTML = divs;
             });
+            document.querySelector('.messages').innerHTML = divs;
+        };
+
+        // 获取所有成员
+        function getAllChats(params) {
+            utils.postData('/chat/getAllChats', null, params).then(res => {
+                const { success, data } = res;
+                if(success && data) {
+                    renderChats(Object.values(data));
+                };
+            }).catch(err => {
+                console.log('err', err);
+            });
+        };
+
+        function renderChats(data) {
+            var divs = '';
+            data.forEach(item => {
+                divs += `
+                    <span>${item}</span>,
+                `;
+            });
+            document.querySelector('.all-chat').innerHTML = divs;
         };
 
         function saveMessage(params) {
@@ -109,7 +145,11 @@
             li.innerHTML = msg;
             document.querySelector('.messages').appendChild(li);
             li.scrollIntoView({behavior: 'smooth'});
-
+            
+            console.log(obj);
+            if(userObj.userKey !== (obj && obj.userKey)) {
+                return
+            }
             if(obj && obj.message) {
                 var messageObj = {
                     ...userObj,
