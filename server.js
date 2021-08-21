@@ -20,11 +20,19 @@ app.get('/login', function(req, res){
 	res.sendFile(__dirname + '/login.html')
 });
 
+// 登录接口
 app.post('/chat/login', function(req, res) {
 	const { userName, userKey} = req.body;
 	if(userName && userKey) {
-		writeUser(userDir, req.body);
+		// 读取用户信息
+		var userObj = readUser(userDir) || '{}';
+		console.log('userObj', userObj);
+		userObj = JSON.parse(userObj) || {};
+		userObj[userKey] = userName;
+		// 写入用户信息
+		writeUser(userDir, userObj);
 		var dir = `${__dirname}/history/${req.body['userKey']}.json`;
+		// 写入当前用户个人信息
 		writeUser(dir, '');
 		res.send({
 			success: true,
@@ -40,16 +48,29 @@ app.post('/chat/login', function(req, res) {
 	}
 });
 
+// 判断是否登录接口
 app.post('/chat/isLogin', function(req, res) {
 	const { userName, userKey} = req.body;
-	console.log('req.body', req.body);
 	if(userName && userKey) {
-		var users = readUser(userDir);
-		res.send({
-			success: true,
-			message: '已经登录了',
-			code: 200
-		});
+		var users = JSON.parse(readUser(userDir));
+		// 已经登录
+		console.log(userKey, users);
+		if( userKey && users[userKey] == userName) {
+			res.send({
+				success: true,
+				message: '已经登录了',
+				code: 200
+			});
+		}else{
+			var dir = `${__dirname}/history/${userKey}.json`;
+			writeUser(dir, JSON.stringify([]));
+			res.send({
+				success: true,
+				message: '自动为您创建目录',
+				userName,
+				code: 201
+			});
+		}
 	}else{
 		res.send({
 			success: true,
@@ -84,8 +105,10 @@ app.post('/chat/setMessage', function(req, res) {
 	var mesDir = `${__dirname}/history/${userKey}.json`;
 	console.log('userMessage', userMessage);
 	try {
-		var messages = readUser(mesDir);
-		var lastMess = JSON.parse(messages)
+		var messages = readUser(mesDir) || [];
+		var lastMess = JSON.parse(messages) || [];
+		console.log('messages', messages);
+		console.log('lastMess', lastMess);
 		lastMess.push(userMessage);
 		writeUser(mesDir, lastMess, 'utf-8');
 		var messageRes = {

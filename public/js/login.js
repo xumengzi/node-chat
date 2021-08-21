@@ -7,9 +7,13 @@
             console.log('name', name);
             try {
                 isLogin = await loginAuth(name);
-                const { success, code } = isLogin;
-                if(success && code === 200) {
-                    location.href = '/chat';
+                const { success, code, userName } = isLogin;
+                if(success ) {
+                    if(code === 200) {
+                        location.href = '/chat';
+                    }else if(code === 201) {
+                        setName(userName);
+                    }
                 }
             } catch (error) {
                 isLogin = false;
@@ -18,12 +22,7 @@
             name = prompt('edit your name:');
         };
         if(name && !isLogin) {
-            var data = {
-                'userName': name,
-                'userKey': utils.randomKey()
-            };
-            login(data);
-            utils.setStorage('data', data);
+            setName(name, login);
         }    
         
         // 是否存在
@@ -31,10 +30,21 @@
             return utils.postData('/chat/isLogin', null, params);
         };
 
+        function setName(name, cb) {
+            var data = {
+                'userName': name,
+                'userKey': utils.randomKey()
+            };
+            console.log('--data--', data);
+            cb && cb(data);
+            utils.setStorage('data', data);
+        }
+
         // login
         function login(params) {
             utils.postData('/chat/login', null, params).then(res => {
                 console.log('res', res);
+                location.href = '/chat';
             }).catch(err => {
                 console.log('err', err);
             })
